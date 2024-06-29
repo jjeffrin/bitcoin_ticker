@@ -1,3 +1,5 @@
+import 'package:bitcoin_ticker/models/currency_model.dart';
+import 'package:bitcoin_ticker/services/currency.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -10,12 +12,16 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<String> cryptoCoins = ['BTC', 'ETH', 'LTC'];
   final List<String> currencies = ['USD', 'INR', 'EUR'];
+  List<CurrencyModel> rates = [];
   String selectedCurrency = 'USD';
 
   List<Widget> getCryptoCoinContainers(String currency) {
     List<Container> containersToReturn = [];
 
     for (String coin in cryptoCoins) {
+      CurrencyModel? currRate = rates.firstWhere(
+          (rate) => rate.cryptoCoinName == coin,
+          orElse: () => CurrencyModel(cryptoCoinName: '', rate: 0.00));
       containersToReturn.add(Container(
         margin: const EdgeInsets.only(top: 20.0),
         decoration: BoxDecoration(
@@ -25,7 +31,7 @@ class _HomePageState extends State<HomePage> {
         width: double.infinity,
         child: Center(
             child: Text(
-          '1 $coin = 1000 $currency',
+          '1 $coin = ${currRate.rate} $currency',
           textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.bold),
         )),
@@ -40,18 +46,35 @@ class _HomePageState extends State<HomePage> {
     for (String currency in currencies) {
       chipsToReturn.add(ChoiceChip(
         elevation: 16.0,
-        backgroundColor: Colors.amber, 
+        backgroundColor: Colors.amber,
         side: const BorderSide(color: Colors.amber),
         label: Text(currency),
         selected: currency == selectedCurrency,
-        onSelected: (bool value) {
+        onSelected: (bool value) async {
+          Currency currencyHelper = Currency();
+          var rateData = await currencyHelper.getCurrencyData(currency);
           setState(() {
             selectedCurrency = currency;
+            rates = rateData;
           });
         },
       ));
     }
     return chipsToReturn;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getInitialCurrenyData();
+  }
+
+  void getInitialCurrenyData() async {
+    Currency currencyHelper = Currency();
+    var rateData = await currencyHelper.getCurrencyData(selectedCurrency);
+    setState(() {
+      rates = rateData;
+    });
   }
 
   @override
@@ -71,7 +94,7 @@ class _HomePageState extends State<HomePage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Column(
-              children: getCryptoCoinContainers('USD'),
+              children: getCryptoCoinContainers(selectedCurrency),
             ),
           ),
           Container(
